@@ -1,0 +1,16 @@
+# Render blueprint for AKANDO AI — free web service, deploys from this repo.
+# In Render dashboard: New -> Blueprint -> connect the repo containing this file.
+services:
+  - type: web
+    name: akando-ai
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: WORKER_SECRET
+        generateValue: true
+      - key: ADMIN_MOBILE
+        value: "01700000000"
+      - key: ADMIN_PASSWORD
+        value: akando-admin

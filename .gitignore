@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+akando.db
+.site_outbox.offset
+*.log
