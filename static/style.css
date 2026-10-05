@@ -1,0 +1,119 @@
+/* AKANDO student chat — clean modern chat UI, mobile responsive */
+:root{
+  --bg:#0f1420; --panel:#161d2e; --panel2:#1c2540; --line:#26314d;
+  --text:#eef2ff; --muted:#93a0c0; --accent:#4f7cff; --accent2:#7c5cff;
+  --bubble-me:#2b4bd8; --bubble-ai:#1c2540; --danger:#e05252; --ok:#37c26a;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,'Noto Sans Bengali',sans-serif;
+  background:var(--bg); color:var(--text); font-size:15px;
+}
+.hidden{display:none !important}
+a{color:var(--accent); text-decoration:none}
+.err{background:#3a1d22; color:#ff9aa5; border:1px solid #6b2b33; padding:10px 12px;
+  border-radius:10px; margin-bottom:12px; font-size:14px}
+.ok{background:#17352a; color:#7fe0a8; border:1px solid #2b6b4d; padding:10px 12px;
+  border-radius:10px; margin-bottom:12px; font-size:14px}
+
+/* ---------- auth ---------- */
+.auth-view{min-height:100%; display:flex; align-items:center; justify-content:center; padding:20px;
+  background:radial-gradient(800px 400px at 50% -100px, #22305a 0%, var(--bg) 60%)}
+.auth-card{background:var(--panel); border:1px solid var(--line); border-radius:18px;
+  padding:32px 28px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.brand{display:flex; align-items:center; gap:10px; margin-bottom:6px}
+.brand-mark{width:38px; height:38px; border-radius:12px; display:flex; align-items:center;
+  justify-content:center; font-weight:800; font-size:20px; color:#fff;
+  background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.brand-name{font-weight:800; font-size:22px; letter-spacing:2px}
+.brand.small .brand-mark{width:30px;height:30px;font-size:16px;border-radius:9px}
+.brand.small .brand-name{font-size:17px}
+.brand-sub{color:var(--muted); font-size:13px; margin-bottom:18px}
+.auth-card h2{font-size:18px; margin-bottom:14px}
+.auth-card input{width:100%; padding:12px 14px; margin-bottom:12px; border-radius:12px;
+  border:1px solid var(--line); background:var(--bg); color:var(--text); font-size:15px}
+.auth-card input:focus{outline:none; border-color:var(--accent)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff;
+  border:none; border-radius:12px; padding:12px 16px; font-size:15px; font-weight:600;
+  cursor:pointer; width:100%}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{opacity:.5; cursor:default}
+.switch{margin-top:14px; text-align:center; color:var(--muted); font-size:14px}
+
+/* ---------- chat layout ---------- */
+#view-chat{height:100dvh; display:flex}
+#sidebar{width:280px; min-width:280px; background:var(--panel); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; padding:14px}
+.side-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
+#btn-new-chat{margin-bottom:12px}
+.chat-list{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:6px}
+.chat-item{padding:10px 12px; border-radius:10px; cursor:pointer; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:14px}
+.chat-item:hover{background:var(--panel2)}
+.chat-item.active{background:var(--panel2); border:1px solid var(--line)}
+.chat-empty{color:var(--muted); font-size:13px; padding:8px}
+.side-foot{border-top:1px solid var(--line); padding-top:10px; margin-top:8px; font-size:13px}
+.user-row{display:flex; justify-content:space-between; align-items:center; margin-top:8px}
+.user-label{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px}
+.logout{font-size:13px}
+#main{flex:1; display:flex; flex-direction:column; min-width:0}
+.main-head{display:flex; align-items:center; gap:10px; padding:12px 16px;
+  border-bottom:1px solid var(--line); background:var(--panel)}
+.main-title{font-weight:600}
+.icon-btn{background:none; border:none; color:var(--text); font-size:20px; cursor:pointer; padding:4px 8px}
+.only-mobile{display:none}
+.messages{flex:1; overflow-y:auto; padding:18px 16px; display:flex; flex-direction:column; gap:10px;
+  max-width:860px; width:100%; margin:0 auto}
+.msg{max-width:78%; padding:10px 14px; border-radius:16px; line-height:1.5; font-size:15px;
+  word-wrap:break-word; white-space:pre-wrap}
+.msg.user{align-self:flex-end; background:var(--bubble-me); color:#fff; border-bottom-right-radius:6px}
+.msg.ai{align-self:flex-start; background:var(--bubble-ai); border:1px solid var(--line); border-bottom-left-radius:6px}
+.msg .pending-mark{font-size:11px; color:#bcd0ff; display:block; margin-top:4px; opacity:.8}
+.welcome{text-align:center; color:var(--muted); margin:auto; max-width:420px; line-height:1.8}
+.welcome .big{font-size:44px}
+.typing{padding:6px 22px; color:var(--muted); font-size:13px; max-width:860px; width:100%; margin:0 auto}
+.dots i{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--muted);
+  margin-right:3px; animation:blink 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+.composer{display:flex; gap:10px; padding:12px 16px; border-top:1px solid var(--line);
+  background:var(--panel); max-width:860px; width:100%; margin:0 auto}
+.composer input{flex:1; padding:12px 16px; border-radius:24px; border:1px solid var(--line);
+  background:var(--bg); color:var(--text); font-size:15px}
+.composer input:focus{outline:none; border-color:var(--accent)}
+.send-btn{width:48px; flex:none; border-radius:50%; padding:0; font-size:18px}
+
+/* ---------- admin ---------- */
+#view-admin{min-height:100%; padding:24px 16px}
+.admin-wrap{max-width:760px; margin:0 auto}
+.admin-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:18px}
+.admin-wrap h3{margin:20px 0 10px; font-size:16px}
+.user-table{display:flex; flex-direction:column; gap:8px}
+.user-row-card{background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:12px 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.user-row-card .info{flex:1; min-width:180px}
+.user-row-card .nm{font-weight:600}
+.user-row-card .mb{color:var(--muted); font-size:13px}
+.badge{font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600}
+.badge.pending{background:#4a3a17; color:#ffcf6e}
+.badge.approved{background:#17352a; color:#7fe0a8}
+.badge.rejected{background:#3a1d22; color:#ff9aa5}
+.badge.admin{background:#2b2350; color:#b9a8ff}
+.btn-sm{border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer}
+.btn-approve{background:var(--ok); color:#06281a}
+.btn-reject{background:var(--danger); color:#fff}
+.pw-box{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px;
+  display:flex; flex-direction:column; gap:10px; max-width:380px}
+.pw-box input{padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+  background:var(--bg); color:var(--text)}
+.pw-box .btn-primary{width:auto; align-self:flex-start}
+
+/* ---------- mobile ---------- */
+@media (max-width:760px){
+  .only-mobile{display:inline-block}
+  #sidebar{position:fixed; left:0; top:0; bottom:0; z-index:50; transform:translateX(-105%);
+    transition:transform .25s ease; box-shadow:8px 0 30px rgba(0,0,0,.5)}
+  #sidebar.open{transform:translateX(0)}
+  .msg{max-width:88%}
+}

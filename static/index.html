@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AKANDO AI — Student Chat</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ============ LOGIN VIEW ============ -->
+<div id="view-login" class="view auth-view hidden">
+  <div class="auth-card">
+    <div class="brand"><span class="brand-mark">A</span><span class="brand-name">AKANDO AI</span></div>
+    <p class="brand-sub">Tomar AI mentor — jekono somoy, jekono prosno 💬</p>
+    <h2>লগইন / Login</h2>
+    <div id="login-err" class="err hidden"></div>
+    <input id="login-mobile" type="tel" placeholder="Mobile number" autocomplete="username">
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="btn-login" class="btn-primary">Login koro →</button>
+    <p class="switch">Account nai? <a href="#" id="link-register">Registration koro</a></p>
+  </div>
+</div>
+
+<!-- ============ REGISTER VIEW ============ -->
+<div id="view-register" class="view auth-view hidden">
+  <div class="auth-card">
+    <div class="brand"><span class="brand-mark">A</span><span class="brand-name">AKANDO AI</span></div>
+    <p class="brand-sub">Tomar AI mentor — jekono somoy, jekono prosno 💬</p>
+    <h2>রেজিস্ট্রেশন / Register</h2>
+    <div id="reg-err" class="err hidden"></div>
+    <div id="reg-ok" class="ok hidden"></div>
+    <input id="reg-name" type="text" placeholder="Tomar nam">
+    <input id="reg-mobile" type="tel" placeholder="Mobile number">
+    <input id="reg-password" type="password" placeholder="Password (min 4 okkhor)" autocomplete="new-password">
+    <button id="btn-register" class="btn-primary">Registration koro →</button>
+    <p class="switch">Already account ache? <a href="#" id="link-login">Login koro</a></p>
+  </div>
+</div>
+
+<!-- ============ CHAT VIEW ============ -->
+<div id="view-chat" class="view hidden">
+  <aside id="sidebar">
+    <div class="side-head">
+      <div class="brand small"><span class="brand-mark">A</span><span class="brand-name">AKANDO AI</span></div>
+      <button id="btn-side-close" class="icon-btn only-mobile">✕</button>
+    </div>
+    <button id="btn-new-chat" class="btn-primary">＋ Notun chat</button>
+    <div id="chat-list" class="chat-list"></div>
+    <div class="side-foot">
+      <div id="admin-link-row" class="hidden"><a href="#" id="link-admin">⚙️ Admin panel</a></div>
+      <div class="user-row">
+        <span id="user-label" class="user-label"></span>
+        <a href="#" id="link-logout" class="logout">Logout</a>
+      </div>
+    </div>
+  </aside>
+  <main id="main">
+    <div class="main-head">
+      <button id="btn-side-open" class="icon-btn only-mobile">☰</button>
+      <div class="main-title">💬 <span id="chat-title">AKANDO AI Chat</span></div>
+    </div>
+    <div id="messages" class="messages"></div>
+    <div id="typing" class="typing hidden"><span class="dots"><i></i><i></i><i></i></span> AKANDO AI likhche…</div>
+    <div class="composer">
+      <input id="msg-input" type="text" placeholder="Message likho…" autocomplete="off">
+      <button id="btn-send" class="btn-primary send-btn">➤</button>
+    </div>
+  </main>
+</div>
+
+<!-- ============ ADMIN VIEW ============ -->
+<div id="view-admin" class="view hidden">
+  <div class="admin-wrap">
+    <div class="admin-head">
+      <h2>⚙️ Admin Panel</h2>
+      <a href="#" id="link-back-chat">← Chat-e fire jao</a>
+    </div>
+    <h3>⏳ Pending approvals</h3>
+    <div id="pending-list" class="user-table"></div>
+    <h3>👥 Shob users</h3>
+    <div id="users-list" class="user-table"></div>
+    <h3>🔑 Password bodlan</h3>
+    <div class="pw-box">
+      <div id="pw-err" class="err hidden"></div>
+      <div id="pw-ok" class="ok hidden"></div>
+      <input id="pw-old" type="password" placeholder="Purono password">
+      <input id="pw-new" type="password" placeholder="Notun password">
+      <button id="btn-pw" class="btn-primary">Password bodlao</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
