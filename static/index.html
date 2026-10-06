@@ -11,13 +11,17 @@
 <!-- ============ LOGIN VIEW ============ -->
 <div id="view-login" class="view auth-view hidden">
   <div class="auth-card">
-    <div class="brand"><span class="brand-mark">A</span><span class="brand-name">AKANDO AI</span></div>
-    <p class="brand-sub">Your AI mentor — anytime, any question 💬</p>
-    <h2>Login</h2>
+    <div class="brand"><img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI"><span class="brand-name">AKANDO AI</span></div>
+    <p class="brand-sub">Your AI mentor — anytime, any question</p>
+    <h2>Welcome back</h2>
     <div id="login-err" class="err hidden"></div>
-    <input id="login-mobile" type="tel" placeholder="Mobile number" autocomplete="username">
-    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
-    <button id="btn-login" class="btn-primary">Login →</button>
+    <label class="fld"><span>Mobile number</span>
+      <input id="login-mobile" type="tel" placeholder="01XXXXXXXXX" autocomplete="username">
+    </label>
+    <label class="fld"><span>Password</span>
+      <input id="login-password" type="password" placeholder="Your password" autocomplete="current-password">
+    </label>
+    <button id="btn-login" class="btn-primary">Login</button>
     <p class="switch">No account? <a href="#" id="link-register">Register</a></p>
   </div>
 </div>
@@ -25,15 +29,21 @@
 <!-- ============ REGISTER VIEW ============ -->
 <div id="view-register" class="view auth-view hidden">
   <div class="auth-card">
-    <div class="brand"><span class="brand-mark">A</span><span class="brand-name">AKANDO AI</span></div>
-    <p class="brand-sub">Your AI mentor — anytime, any question 💬</p>
-    <h2>Register</h2>
+    <div class="brand"><img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI"><span class="brand-name">AKANDO AI</span></div>
+    <p class="brand-sub">Your AI mentor — anytime, any question</p>
+    <h2>Create your account</h2>
     <div id="reg-err" class="err hidden"></div>
     <div id="reg-ok" class="ok hidden"></div>
-    <input id="reg-name" type="text" placeholder="Your name">
-    <input id="reg-mobile" type="tel" placeholder="Mobile number">
-    <input id="reg-password" type="password" placeholder="Password (min 4 characters)" autocomplete="new-password">
-    <button id="btn-register" class="btn-primary">Register →</button>
+    <label class="fld"><span>Your name</span>
+      <input id="reg-name" type="text" placeholder="Your full name" autocomplete="name">
+    </label>
+    <label class="fld"><span>Mobile number</span>
+      <input id="reg-mobile" type="tel" placeholder="01XXXXXXXXX" autocomplete="username">
+    </label>
+    <label class="fld"><span>Password</span>
+      <input id="reg-password" type="password" placeholder="Min 4 characters" autocomplete="new-password">
+    </label>
+    <button id="btn-register" class="btn-primary">Register</button>
     <p class="switch">Already have an account? <a href="#" id="link-login">Login</a></p>
   </div>
 </div>
@@ -42,10 +52,11 @@
 <div id="view-chat" class="view hidden">
   <aside id="sidebar">
     <div class="side-head">
-      <div class="brand small"><span class="brand-mark">A</span><span class="brand-name">AKANDO AI</span></div>
-      <button id="btn-side-close" class="icon-btn only-mobile">✕</button>
+      <div class="brand small"><img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI"><span class="brand-name">AKANDO AI</span></div>
+      <button id="btn-side-close" class="icon-btn only-mobile" aria-label="Close menu">✕</button>
     </div>
-    <button id="btn-new-chat" class="btn-primary">＋ New chat</button>
+    <button id="btn-new-chat" class="btn-new"><span class="plus">＋</span> New chat</button>
+    <div class="side-label">Chats</div>
     <div id="chat-list" class="chat-list"></div>
     <div class="side-foot">
       <div id="admin-link-row" class="hidden"><a href="#" id="link-admin">⚙️ Admin panel</a></div>
@@ -57,14 +68,17 @@
   </aside>
   <main id="main">
     <div class="main-head">
-      <button id="btn-side-open" class="icon-btn only-mobile">☰</button>
-      <div class="main-title">💬 <span id="chat-title">AKANDO AI Chat</span></div>
+      <button id="btn-side-open" class="icon-btn only-mobile" aria-label="Open menu">☰</button>
+      <div class="main-title"><img class="avatar avatar-head" src="/static/avatar.png" alt=""><span id="chat-title">AKANDO AI Chat</span></div>
     </div>
     <div id="messages" class="messages"></div>
-    <div id="typing" class="typing hidden"><span class="dots"><i></i><i></i><i></i></span> AKANDO AI is typing…</div>
-    <div class="composer">
-      <input id="msg-input" type="text" placeholder="Type a message…" autocomplete="off">
-      <button id="btn-send" class="btn-primary send-btn">➤</button>
+    <div id="typing" class="typing hidden"><img class="avatar avatar-typing" src="/static/avatar.png" alt=""><span class="dots"><i></i><i></i><i></i></span><span>AKANDO AI is typing…</span></div>
+    <div class="composer-wrap">
+      <div class="composer">
+        <input id="msg-input" type="text" placeholder="Type a message…" autocomplete="off">
+        <button id="btn-send" class="send-btn" aria-label="Send">➤</button>
+      </div>
+      <p class="composer-hint">AKANDO AI can make mistakes. Please verify important information.</p>
     </div>
   </main>
 </div>
@@ -76,18 +90,24 @@
       <h2>⚙️ Admin Panel</h2>
       <a href="#" id="link-back-chat">← Back to chat</a>
     </div>
-    <h3>⏳ Pending approvals</h3>
-    <div id="pending-list" class="user-table"></div>
-    <h3>👥 All users</h3>
-    <div id="users-list" class="user-table"></div>
-    <h3>🔑 Change password</h3>
-    <div class="pw-box">
-      <div id="pw-err" class="err hidden"></div>
-      <div id="pw-ok" class="ok hidden"></div>
-      <input id="pw-old" type="password" placeholder="Old password">
-      <input id="pw-new" type="password" placeholder="New password">
-      <button id="btn-pw" class="btn-primary">Change password</button>
-    </div>
+    <section class="admin-card">
+      <h3>⏳ Pending approvals</h3>
+      <div id="pending-list" class="user-table"></div>
+    </section>
+    <section class="admin-card">
+      <h3>👥 All users</h3>
+      <div id="users-list" class="user-table"></div>
+    </section>
+    <section class="admin-card">
+      <h3>🔑 Change password</h3>
+      <div class="pw-box">
+        <div id="pw-err" class="err hidden"></div>
+        <div id="pw-ok" class="ok hidden"></div>
+        <input id="pw-old" type="password" placeholder="Old password" autocomplete="current-password">
+        <input id="pw-new" type="password" placeholder="New password" autocomplete="new-password">
+        <button id="btn-pw" class="btn-primary">Change password</button>
+      </div>
+    </section>
   </div>
 </div>
 
