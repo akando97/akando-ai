@@ -100,10 +100,16 @@ def init_db():
             con.execute(
                 "INSERT INTO users(name, mobile, password_hash, status, is_admin, created_at)"
                 " VALUES(?,?,?,?,?,?)",
-                ("Billah (Admin)", admin_mobile, hash_password(admin_password),
+                ("Admin", admin_mobile, hash_password(admin_password),
                  "approved", 1, utcnow()),
             )
             print(f"[akando-site] seeded admin account: mobile {admin_mobile}")
+        else:
+            # Rename the old seeded name so it never shows "Billah (Admin)".
+            con.execute(
+                "UPDATE users SET name = 'Admin' WHERE mobile = ? AND name = 'Billah (Admin)'",
+                (admin_mobile,),
+            )
 
 
 def utcnow():
