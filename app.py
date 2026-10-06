@@ -93,7 +93,7 @@ def init_db():
         # Seed the admin account (Billah). He should change the password
         # after first login (admin panel -> "Password bodlan").
         # ADMIN_MOBILE / ADMIN_PASSWORD env vars override the defaults (used on Render).
-        admin_mobile = os.environ.get("ADMIN_MOBILE", "01700000000") or "01700000000"
+        admin_mobile = os.environ.get("ADMIN_MOBILE", "01773196097") or "01773196097"
         admin_password = os.environ.get("ADMIN_PASSWORD", "akando-admin") or "akando-admin"
         row = con.execute("SELECT id FROM users WHERE mobile = ?", (admin_mobile,)).fetchone()
         if not row:
@@ -110,6 +110,11 @@ def init_db():
                 "UPDATE users SET name = 'Admin' WHERE mobile = ? AND name = 'Billah (Admin)'",
                 (admin_mobile,),
             )
+        # Migrate any older seeded admin row (e.g. 01700000000) to the current admin mobile.
+        con.execute(
+            "UPDATE users SET mobile = ? WHERE is_admin = 1 AND mobile != ?",
+            (admin_mobile, admin_mobile),
+        )
 
 
 def utcnow():
