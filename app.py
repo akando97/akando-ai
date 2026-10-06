@@ -52,11 +52,205 @@ HOSTED = not os.path.isdir(os.path.dirname(SITE_INBOX))
 SESSION_DAYS = 7
 
 # ------------------------------------------------------------ db helpers ---
+# Persistent storage: by default the local SQLite file (exactly as before).
+# When TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are both set (Render ->
+# Environment), the app talks to Turso instead -- a SQLite-compatible remote
+# database over its Hrana HTTP API (plain urllib, stdlib only), so student
+# data survives Render redeploys. _Row/_HranaCursor/_HranaConn below adapt the
+# remote results to the sqlite3 surface the rest of the app uses. All call
+# sites keep working unchanged: same `?` placeholders, same commit/lastrowid
+# semantics, same `with db() as con:` blocks.
+
+
+def _turso_env():
+    url = os.environ.get("TURSO_DATABASE_URL", "").strip()
+    token = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
+    return (url, token) if url and token else (None, None)
+
+
+class _Row:
+    """sqlite3.Row-compatible row for the Turso backend.
+
+    Supports dict(row), row["col"], row[0], iteration and .keys().
+    """
+    __slots__ = ("_keys", "_vals")
+
+    def __init__(self, keys, vals):
+        self._keys = tuple(keys)
+        self._vals = tuple(vals)
+
+    def __getitem__(self, k):
+        if isinstance(k, str):
+            try:
+                return self._vals[self._keys.index(k)]
+            except ValueError:
+                raise KeyError(k)
+        return self._vals[k]
+
+    def __iter__(self):
+        return iter(self._vals)
+
+    def __len__(self):
+        return len(self._vals)
+
+    def keys(self):
+        return list(self._keys)
+
+
+def _hrana_arg(v):
+    if v is None:
+        return {"type": "null"}
+    if isinstance(v, bool):
+        return {"type": "integer", "value": str(int(v))}
+    if isinstance(v, int):
+        return {"type": "integer", "value": str(v)}
+    if isinstance(v, float):
+        return {"type": "float", "value": repr(v)}
+    if isinstance(v, bytes):
+        import base64
+        return {"type": "blob", "value": base64.b64encode(v).decode()}
+    return {"type": "text", "value": str(v)}
+
+
+def _hrana_val(v):
+    t, val = v["type"], v.get("value")
+    if t == "null":
+        return None
+    if t == "integer":
+        return int(val)
+    if t == "float":
+        return float(val)
+    if t == "blob":
+        import base64
+        return base64.b64decode(val)
+    return val
+
+
+class _HranaCursor:
+    """Cursor over one Hrana result set, exposing the sqlite3 row surface."""
+
+    def __init__(self, cols, rows, rowcount, lastrowid):
+        self._cols = cols
+        self._rows = [_Row(cols, r) for r in rows]
+        self._rowcount = rowcount
+        self._lastrowid = int(lastrowid) if lastrowid is not None else None
+        self._i = 0
+
+    def fetchone(self):
+        if self._i >= len(self._rows):
+            return None
+        r = self._rows[self._i]
+        self._i += 1
+        return r
+
+    def fetchall(self):
+        rows = self._rows[self._i:]
+        self._i = len(self._rows)
+        return rows
+
+    def fetchmany(self, n):
+        rows = self._rows[self._i:self._i + n]
+        self._i += len(rows)
+        return rows
+
+    @property
+    def lastrowid(self):
+        return self._lastrowid
+
+    @property
+    def rowcount(self):
+        return self._rowcount
+
+
+class _HranaConn:
+    """Turso remote connection via the Hrana HTTP API (urllib, stdlib only)."""
+
+    def __init__(self, url, token):
+        if url.startswith("libsql://"):
+            url = "https://" + url[len("libsql://"):]
+        self._endpoint = url.rstrip("/") + "/v2/pipeline"
+        self._token = token
+
+    def _pipeline(self, requests):
+        import urllib.request
+        body = json.dumps({"requests": requests}).encode()
+        req = urllib.request.Request(
+            self._endpoint, data=body,
+            headers={"Content-Type": "application/json",
+                     "Authorization": "Bearer " + self._token},
+            method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.load(resp)
+        except Exception as e:
+            raise RuntimeError("turso request failed: %s" % e)
+        results = []
+        for r in data.get("results", []):
+            if r.get("type") == "error":
+                err = r.get("error", {})
+                msg = err.get("message", json.dumps(err))
+                if "constraint failed" in msg.lower():
+                    raise sqlite3.IntegrityError(msg)
+                raise RuntimeError("turso: " + msg)
+            results.append(r["response"]["result"])
+        return results
+
+    def execute(self, sql, params=()):
+        stmt = {"sql": sql}
+        if params:
+            stmt["args"] = [_hrana_arg(p) for p in params]
+        res = self._pipeline([{"type": "execute", "stmt": stmt}])[0]
+        cols = [c["name"] for c in res.get("cols", [])]
+        rows = [tuple(_hrana_val(v) for v in row)
+                for row in res.get("rows", [])]
+        return _HranaCursor(cols, rows, res.get("affected_row_count", 0),
+                            res.get("last_insert_rowid"))
+
+    def executescript(self, sql):
+        for part in sql.split(";"):
+            part = part.strip()
+            if part:
+                self.execute(part)
+        return self
+
+    def commit(self):
+        pass  # Hrana autocommits every statement
+
+    def rollback(self):
+        pass
+
+    def close(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        # Mirror sqlite3's context-manager protocol; autocommit makes this
+        # a no-op, but keep the shape so call sites are unchanged.
+        self.close()
+        return False
+
+
 def db():
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys = ON")
+    """Return a DB connection with the sqlite3 interface the app expects.
+
+    Turso remote when TURSO_DATABASE_URL + TURSO_AUTH_TOKEN are both set,
+    otherwise the local SQLite file (behavior unchanged from before).
+    """
+    url, token = _turso_env()
+    if url and token:
+        con = _HranaConn(url, token)
+    else:
+        con = sqlite3.connect(DB_PATH)
+        con.row_factory = sqlite3.Row
+    try:
+        con.execute("PRAGMA foreign_keys = ON")
+    except Exception:
+        # Remote backends may not accept every PRAGMA; not fatal.
+        pass
     return con
+
 
 
 def init_db():
