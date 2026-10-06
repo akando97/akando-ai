@@ -26,7 +26,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -34,6 +34,12 @@ from fastapi.staticfiles import StaticFiles
 BASE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE, "akando.db")
 STATIC_DIR = os.path.join(BASE, "static")
+UPLOADS_DIR = os.path.join(BASE, "uploads")
+MAX_UPLOAD_MB = 10
+ALLOWED_UPLOAD_MIMES = {
+    "image/png", "image/jpeg", "image/gif", "image/webp",
+    "application/pdf", "text/plain", "text/markdown",
+}
 OFFSET_FILE = os.path.join(BASE, ".site_outbox.offset")
 
 # Pipeline files shared with the background worker agent.
@@ -90,6 +96,10 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_messages_local ON messages(msg_local_id);
             """
         )
+        # Migration: attachment column for file uploads (older DBs lack it).
+        cols = [r[1] for r in con.execute("PRAGMA table_info(messages)").fetchall()]
+        if "attachment" not in cols:
+            con.execute("ALTER TABLE messages ADD COLUMN attachment TEXT")
         # Seed the admin account (Billah). He should change the password
         # after first login (admin panel -> "Password bodlan").
         # ADMIN_MOBILE / ADMIN_PASSWORD env vars override the defaults (used on Render).
@@ -271,7 +281,10 @@ async def http_exc_handler(req: Request, exc: HTTPException):
 # --------------------------------------------------------------- API: auth ---
 @app.post("/api/register")
 async def api_register(req: Request):
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     name = (body.get("name") or "").strip()
     mobile = "".join((body.get("mobile") or "").strip().split())
     password = body.get("password") or ""
@@ -295,7 +308,10 @@ async def api_register(req: Request):
 
 @app.post("/api/login")
 async def api_login(req: Request):
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     mobile = "".join((body.get("mobile") or "").strip().split())
     password = body.get("password") or ""
     with db() as con:
@@ -337,7 +353,10 @@ async def api_me(req: Request):
 @app.post("/api/me/password")
 async def api_change_password(req: Request):
     u = require_user(req)
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     old = body.get("old") or ""
     new = body.get("new") or ""
     if len(new) < 4:
@@ -370,7 +389,10 @@ async def api_list_chats(req: Request):
 @app.post("/api/chats")
 async def api_new_chat(req: Request):
     u = require_user(req)
-    body = await req.json() if req.headers.get("content-type", "").startswith("application/json") else {}
+    try:
+        body = await req.json() if req.headers.get("content-type", "").startswith("application/json") else {}
+    except Exception:
+        body = {}
     title = (body.get("title") or "New chat").strip()[:60] or "New chat"
     with db() as con:
         cur = con.execute(
@@ -407,7 +429,10 @@ def writable_chat(u, chat_id: int):
 async def api_rename_chat(chat_id: int, req: Request):
     u = require_user(req)
     writable_chat(u, chat_id)
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     title = (body.get("title") or "").strip()[:60]
     if not title:
         raise HTTPException(400, "Please enter a chat name.")
@@ -441,24 +466,39 @@ async def api_get_messages(chat_id: int, req: Request, after: int = 0):
 async def api_send_message(chat_id: int, req: Request):
     u = require_user(req)
     own_chat(u, chat_id)
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     text = (body.get("text") or "").strip()
-    if not text:
+    att = body.get("attachment") or None
+    if att is not None:
+        if not isinstance(att, dict) or not att.get("url"):
+            raise HTTPException(400, "Invalid attachment.")
+        att = {"name": str(att.get("name", "file"))[:80],
+               "url": str(att["url"])[:200],
+               "mime": str(att.get("mime", ""))[:60],
+               "size": int(att.get("size") or 0)}
+        if not att["url"].startswith("/uploads/"):
+            raise HTTPException(400, "Invalid attachment.")
+    if not text and not att:
         raise HTTPException(400, "Cannot send an empty message.")
     if len(text) > 4000:
         raise HTTPException(400, "Message too long (4000 character limit).")
     local_id = uuid.uuid4().hex
     with db() as con:
         cur = con.execute(
-            "INSERT INTO messages(chat_id, role, text, msg_local_id, delivered, created_at)"
-            " VALUES(?,?,?,?,0,?)",
-            (chat_id, "user", text, local_id, utcnow()))
+            "INSERT INTO messages(chat_id, role, text, msg_local_id, delivered, created_at, attachment)"
+            " VALUES(?,?,?,?,0,?,?)",
+            (chat_id, "user", text, local_id, utcnow(),
+             json.dumps(att) if att else None))
         mid = cur.lastrowid
     # Hand off to the background worker. Locally: JSONL pipeline.
     # Hosted (Render): message stays in SQLite; the worker pulls it via
     # /api/worker/pending and posts the reply to /api/worker/reply.
     payload = {"channel": "site", "site_user_id": u["id"], "name": u["name"],
-               "text": text, "ts": time.time(), "msg_local_id": local_id}
+               "text": text, "ts": time.time(), "msg_local_id": local_id,
+               "attachment": att}
     if not HOSTED:
         try:
             with open(SITE_INBOX, "a", encoding="utf-8") as f:
@@ -467,7 +507,8 @@ async def api_send_message(chat_id: int, req: Request):
             print("[akando-site] inbox write failed:", e)
             raise HTTPException(500, "Could not queue the message, please try again.")
     return {"ok": True, "message": {"id": mid, "role": "user", "text": text,
-                                    "delivered": 0, "msg_local_id": local_id}}
+                                    "delivered": 0, "msg_local_id": local_id,
+                                    "attachment": att}}
 
 
 # -------------------------------------------------------------- API: worker ---
@@ -504,7 +545,10 @@ async def api_worker_pending(req: Request):
 async def api_worker_reply(req: Request):
     """Accept one worker reply; idempotent on msg_local_id (same as JSONL path)."""
     require_worker(req)
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     local_id = body.get("msg_local_id") or ""
     text = (body.get("text") or "").strip()
     if not local_id or not text:
@@ -576,7 +620,30 @@ async def api_admin_remove_user(uid: int, req: Request):
 # Don't crash at startup if the static dir is missing from the deploy —
 # create it (the UI won't load, but the API stays up for diagnosis).
 os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+
+@app.post("/api/upload")
+async def api_upload(req: Request, file: UploadFile = File(...)):
+    """Upload one file (image/pdf/text, max 10MB). Returns its public URL."""
+    require_user(req)
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(400, f"File too large (max {MAX_UPLOAD_MB}MB).")
+    mime = (file.content_type or "").split(";")[0].strip().lower()
+    if mime not in ALLOWED_UPLOAD_MIMES:
+        raise HTTPException(400, "Only images, PDF or text files are allowed.")
+    ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif",
+           "image/webp": ".webp", "application/pdf": ".pdf",
+           "text/plain": ".txt", "text/markdown": ".md"}.get(mime, ".bin")
+    fname = f"{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(UPLOADS_DIR, fname), "wb") as f:
+        f.write(data)
+    orig = (file.filename or "file").rsplit("/", 1)[-1][:80]
+    return {"ok": True, "file": {"name": orig, "url": f"/uploads/{fname}",
+                                 "mime": mime, "size": len(data)}}
 
 
 @app.get("/")
