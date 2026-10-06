@@ -86,7 +86,7 @@ async function loadChats() {
   if (!state.activeChat && state.chats.length) openChat(state.chats[0].id);
   if (!state.chats.length) {
     $("messages").innerHTML =
-      `<div class="welcome"><div class="big">🤖</div><b>Assalamu Alaikum, ${esc(state.user.name)}!</b><br>Ami <b>AKANDO AI</b> — tomar AI mentor.<br>"＋ Notun chat" chap diye kotha shuru koro. 💬</div>`;
+      `<div class="welcome"><div class="big">🤖</div><b>Hello, ${esc(state.user.name)}!</b><br>I'm <b>AKANDO AI</b> — your AI mentor.<br>Tap "＋ New chat" to start chatting. 💬</div>`;
     $("chat-title").textContent = "AKANDO AI Chat";
   }
 }
@@ -94,7 +94,7 @@ async function loadChats() {
 function renderChatList() {
   const el = $("chat-list");
   el.innerHTML = state.chats.length
-    ? "" : `<div class="chat-empty">Ekhono kono chat nai.</div>`;
+    ? "" : `<div class="chat-empty">No chats yet.</div>`;
   state.chats.forEach((c) => {
     const div = document.createElement("div");
     div.className = "chat-item" + (c.id === state.activeChat ? " active" : "");
@@ -138,13 +138,13 @@ function addMsg(m) {
   div.className = "msg " + (m.role === "user" ? "user" : "ai");
   div.dataset.mid = m.id;
   div.innerHTML = esc(m.text) +
-    (m.role === "user" && !m.delivered ? `<span class="pending-mark">⏳ AKANDO AI uttor dicche…</span>` : "");
+    (m.role === "user" && !m.delivered ? `<span class="pending-mark">⏳ AKANDO AI is replying…</span>` : "");
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
 }
 
 function updateTyping(msgs) {
-  // Show "AKANDO AI likhche…" while the newest user message has no reply yet.
+  // Show the typing indicator while the newest user message has no reply yet.
   let waiting = false;
   for (let i = msgs.length - 1; i >= 0; i--) {
     if (msgs[i].role === "assistant") break;
@@ -239,7 +239,7 @@ async function loadAdmin() {
   try { users = (await api("/api/admin/users")).users || []; }
   catch (e) { $("pending-list").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
   const pend = users.filter((u) => u.status === "pending" && !u.is_admin);
-  $("pending-list").innerHTML = pend.length ? "" : `<div class="chat-empty">Kono pending request nai. ✅</div>`;
+  $("pending-list").innerHTML = pend.length ? "" : `<div class="chat-empty">No pending requests. ✅</div>`;
   pend.forEach((u) => {
     const div = document.createElement("div");
     div.className = "user-row-card";
@@ -253,7 +253,7 @@ async function loadAdmin() {
       loadAdmin();
     };
     div.querySelector(".btn-reject").onclick = async () => {
-      if (confirm(u.name + " ke reject korba?")) {
+      if (confirm("Reject " + u.name + "?")) {
         await api(`/api/admin/users/${u.id}/reject`, { method: "POST" });
         loadAdmin();
       }
