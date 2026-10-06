@@ -457,9 +457,12 @@ async function sendMessage() {
   const inp = $("msg-input");
   const text = inp.value.trim();
   const hasFile = !!state.pendingFile;
-  if ((!text && !hasFile) || !state.activeChat) return;
+  if (!text && !hasFile) return;
   const btn = $("btn-send");
   btn.disabled = true;
+  try {
+    if (!state.activeChat) await createChat();
+  } catch (e) { btn.disabled = false; alert(e.message); return; }
   try {
     let attachment = null;
     if (hasFile) attachment = await uploadPendingFile();
