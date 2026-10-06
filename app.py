@@ -299,9 +299,9 @@ async def api_login(req: Request):
         raise HTTPException(401, "Wrong mobile number or password.")
     u = dict(row)
     if not u["is_admin"] and u["status"] != "approved":
-        msg = ("Tomar account ekhono PENDING — admin approve korlei dhukte parba."
+        msg = ("Your account is still PENDING — you can log in once the admin approves it."
                if u["status"] == "pending" else
-               "Tomar account reject kora hoyeche.")
+               "Your account has been rejected.")
         raise HTTPException(403, msg)
     token = create_session(u["id"])
     resp = JSONResponse({"ok": True, "user": public_user(u)})
@@ -366,7 +366,7 @@ async def api_list_chats(req: Request):
 async def api_new_chat(req: Request):
     u = require_user(req)
     body = await req.json() if req.headers.get("content-type", "").startswith("application/json") else {}
-    title = (body.get("title") or "Notun chat").strip()[:60] or "Notun chat"
+    title = (body.get("title") or "New chat").strip()[:60] or "New chat"
     with db() as con:
         cur = con.execute(
             "INSERT INTO chats(user_id, title, created_at) VALUES(?,?,?)",
@@ -382,6 +382,42 @@ def own_chat(u, chat_id: int):
     if not row:
         raise HTTPException(404, "Chat not found.")
     return dict(row)
+
+
+def writable_chat(u, chat_id: int):
+    """Chat the user may rename/delete: their own, or any chat if admin."""
+    with db() as con:
+        if u["is_admin"]:
+            row = con.execute("SELECT id, title FROM chats WHERE id = ?",
+                              (chat_id,)).fetchone()
+        else:
+            row = con.execute("SELECT id, title FROM chats WHERE id = ? AND user_id = ?",
+                              (chat_id, u["id"])).fetchone()
+    if not row:
+        raise HTTPException(404, "Chat not found.")
+    return dict(row)
+
+
+@app.patch("/api/chats/{chat_id}")
+async def api_rename_chat(chat_id: int, req: Request):
+    u = require_user(req)
+    writable_chat(u, chat_id)
+    body = await req.json()
+    title = (body.get("title") or "").strip()[:60]
+    if not title:
+        raise HTTPException(400, "Please enter a chat name.")
+    with db() as con:
+        con.execute("UPDATE chats SET title = ? WHERE id = ?", (title, chat_id))
+    return {"ok": True, "chat": {"id": chat_id, "title": title}}
+
+
+@app.delete("/api/chats/{chat_id}")
+async def api_delete_chat(chat_id: int, req: Request):
+    u = require_user(req)
+    writable_chat(u, chat_id)
+    with db() as con:
+        con.execute("DELETE FROM chats WHERE id = ?", (chat_id,))
+    return {"ok": True}
 
 
 @app.get("/api/chats/{chat_id}/messages")
@@ -513,6 +549,21 @@ async def api_admin_reject(uid: int, req: Request):
     with db() as con:
         con.execute("UPDATE users SET status = 'rejected' WHERE id = ? AND is_admin = 0", (uid,))
         con.execute("DELETE FROM sessions WHERE user_id = ?", (uid,))
+    return {"ok": True}
+
+
+@app.delete("/api/admin/users/{uid}")
+async def api_admin_remove_user(uid: int, req: Request):
+    me = require_admin(req)
+    if uid == me["id"]:
+        raise HTTPException(400, "You cannot remove your own admin account.")
+    with db() as con:
+        row = con.execute("SELECT is_admin FROM users WHERE id = ?", (uid,)).fetchone()
+        if not row:
+            raise HTTPException(404, "User not found.")
+        if row["is_admin"]:
+            raise HTTPException(400, "You cannot remove another admin account.")
+        con.execute("DELETE FROM users WHERE id = ?", (uid,))
     return {"ok": True}
 
 
