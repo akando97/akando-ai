@@ -456,10 +456,18 @@ async def api_get_messages(chat_id: int, req: Request, after: int = 0):
     own_chat(u, chat_id)
     with db() as con:
         rows = con.execute(
-            "SELECT id, role, text, delivered, created_at FROM messages"
+            "SELECT id, role, text, delivered, created_at, msg_local_id, attachment FROM messages"
             " WHERE chat_id = ? AND id > ? ORDER BY id ASC LIMIT 500",
             (chat_id, after)).fetchall()
-    return {"ok": True, "messages": [dict(r) for r in rows]}
+    out = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["attachment"] = json.loads(d["attachment"]) if d.get("attachment") else None
+        except Exception:
+            d["attachment"] = None
+        out.append(d)
+    return {"ok": True, "messages": out}
 
 
 @app.post("/api/chats/{chat_id}/messages")
@@ -532,13 +540,21 @@ async def api_worker_pending(req: Request):
     require_worker(req)
     with db() as con:
         rows = con.execute(
-            "SELECT m.msg_local_id, m.text, m.created_at,"
+            "SELECT m.msg_local_id, m.text, m.created_at, m.attachment,"
             " u.id AS site_user_id, u.name"
             " FROM messages m JOIN chats c ON c.id = m.chat_id"
             " JOIN users u ON u.id = c.user_id"
             " WHERE m.role = 'user' AND m.delivered = 0 AND m.msg_local_id IS NOT NULL"
             " ORDER BY m.id ASC LIMIT 50").fetchall()
-    return {"ok": True, "messages": [dict(r) for r in rows]}
+    out = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["attachment"] = json.loads(d["attachment"]) if d.get("attachment") else None
+        except Exception:
+            d["attachment"] = None
+        out.append(d)
+    return {"ok": True, "messages": out}
 
 
 @app.post("/api/worker/reply")
