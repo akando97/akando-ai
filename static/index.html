@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AKANDO AI — Student Chat</title>
+<title>AKANDO AI</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="/static/avatar.png" type="image/png">
 </head>
 <body>
 
 <!-- ============ LOGIN VIEW ============ -->
 <div id="view-login" class="view auth-view hidden">
   <div class="auth-card">
-    <div class="brand"><img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI"><span class="brand-name">AKANDO AI</span></div>
+    <div class="brand">
+      <img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI">
+      <span class="brand-name">AKANDO AI</span>
+    </div>
     <p class="brand-sub">Your AI mentor — anytime, any question</p>
     <h2>Welcome back</h2>
     <div id="login-err" class="err hidden"></div>
@@ -21,15 +25,18 @@
     <label class="fld"><span>Password</span>
       <input id="login-password" type="password" placeholder="Your password" autocomplete="current-password">
     </label>
-    <button id="btn-login" class="btn-primary">Login</button>
-    <p class="switch">No account? <a href="#" id="link-register">Register</a></p>
+    <button id="btn-login" class="btn-primary">Log in</button>
+    <p class="switch">No account? <a href="#" id="link-register">Sign up</a></p>
   </div>
 </div>
 
 <!-- ============ REGISTER VIEW ============ -->
 <div id="view-register" class="view auth-view hidden">
   <div class="auth-card">
-    <div class="brand"><img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI"><span class="brand-name">AKANDO AI</span></div>
+    <div class="brand">
+      <img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI">
+      <span class="brand-name">AKANDO AI</span>
+    </div>
     <p class="brand-sub">Your AI mentor — anytime, any question</p>
     <h2>Create your account</h2>
     <div id="reg-err" class="err hidden"></div>
@@ -43,40 +50,72 @@
     <label class="fld"><span>Password</span>
       <input id="reg-password" type="password" placeholder="Min 4 characters" autocomplete="new-password">
     </label>
-    <button id="btn-register" class="btn-primary">Register</button>
-    <p class="switch">Already have an account? <a href="#" id="link-login">Login</a></p>
+    <button id="btn-register" class="btn-primary">Sign up</button>
+    <p class="switch">Already have an account? <a href="#" id="link-login">Log in</a></p>
   </div>
 </div>
 
 <!-- ============ CHAT VIEW ============ -->
 <div id="view-chat" class="view hidden">
+  <div id="side-backdrop" class="side-backdrop"></div>
   <aside id="sidebar">
-    <div class="side-head">
-      <div class="brand small"><img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI"><span class="brand-name">AKANDO AI</span></div>
-      <button id="btn-side-close" class="icon-btn only-mobile" aria-label="Close menu">✕</button>
+    <div class="side-top">
+      <div class="brand small">
+        <img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI">
+        <span class="brand-name">AKANDO AI</span>
+      </div>
+      <button id="btn-side-close" class="icon-btn only-mobile" aria-label="Close sidebar">✕</button>
     </div>
-    <button id="btn-new-chat" class="btn-new"><span class="plus">＋</span> New chat</button>
-    <div class="side-label">Chats</div>
+    <button id="btn-new-chat" class="btn-new">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      New chat
+    </button>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="chat-search" type="text" placeholder="Search chats" autocomplete="off">
+    </div>
     <div id="chat-list" class="chat-list"></div>
     <div class="side-foot">
-      <div id="admin-link-row" class="hidden"><a href="#" id="link-admin">⚙️ Admin panel</a></div>
-      <div class="user-row">
-        <span id="user-label" class="user-label"></span>
-        <a href="#" id="link-logout" class="logout">Logout</a>
+      <div id="user-menu-wrap">
+        <div id="user-menu" class="user-menu hidden">
+          <a href="#" id="menu-admin" class="hidden">⚙️&nbsp; Admin panel</a>
+          <a href="#" id="menu-password">🔑&nbsp; Change password</a>
+          <a href="#" id="menu-logout">↩&nbsp; Log out</a>
+        </div>
+        <button id="user-row" class="user-row">
+          <span id="user-avatar" class="user-avatar">?</span>
+          <span id="user-label" class="user-label"></span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m18 15-6-6-6 6"/></svg>
+        </button>
       </div>
     </div>
   </aside>
+
   <main id="main">
-    <div class="main-head">
-      <button id="btn-side-open" class="icon-btn only-mobile" aria-label="Open menu">☰</button>
-      <div class="main-title"><img class="avatar avatar-head" src="/static/avatar.png" alt=""><span id="chat-title">AKANDO AI Chat</span></div>
+    <div class="main-head only-mobile">
+      <button id="btn-side-open" class="icon-btn" aria-label="Open sidebar">☰</button>
+      <div class="main-title">
+        <img class="avatar avatar-head" src="/static/avatar.png" alt="">
+        <span>AKANDO AI</span>
+      </div>
     </div>
     <div id="messages" class="messages"></div>
-    <div id="typing" class="typing hidden"><img class="avatar avatar-typing" src="/static/avatar.png" alt=""><span class="dots"><i></i><i></i><i></i></span><span>AKANDO AI is typing…</span></div>
+    <div id="typing" class="typing hidden">
+      <img class="avatar avatar-typing" src="/static/avatar.png" alt="">
+      <span class="dots"><i></i><i></i><i></i></span>
+      <span>AKANDO AI is typing…</span>
+    </div>
     <div class="composer-wrap">
+      <div id="attach-preview" class="attach-preview hidden"></div>
       <div class="composer">
-        <input id="msg-input" type="text" placeholder="Type a message…" autocomplete="off">
-        <button id="btn-send" class="send-btn" aria-label="Send">➤</button>
+        <button id="btn-attach" class="attach-btn" aria-label="Attach a file" title="Attach a file">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <input id="file-input" type="file" class="hidden" accept="image/*,.pdf,.txt,.md">
+        <textarea id="msg-input" rows="1" placeholder="How can I help you today?" autocomplete="off"></textarea>
+        <button id="btn-send" class="send-btn" aria-label="Send message">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
       </div>
       <p class="composer-hint">AKANDO AI can make mistakes. Please verify important information.</p>
     </div>
@@ -87,27 +126,49 @@
 <div id="view-admin" class="view hidden">
   <div class="admin-wrap">
     <div class="admin-head">
-      <h2>⚙️ Admin Panel</h2>
+      <div class="brand small">
+        <img class="avatar avatar-brand" src="/static/avatar.png" alt="AKANDO AI">
+        <span class="brand-name">Admin Panel</span>
+      </div>
       <a href="#" id="link-back-chat">← Back to chat</a>
     </div>
     <section class="admin-card">
-      <h3>⏳ Pending approvals</h3>
+      <h3>Pending approvals</h3>
       <div id="pending-list" class="user-table"></div>
     </section>
     <section class="admin-card">
-      <h3>👥 All users</h3>
+      <h3>All users</h3>
       <div id="users-list" class="user-table"></div>
     </section>
     <section class="admin-card">
-      <h3>🔑 Change password</h3>
+      <h3>Change password</h3>
       <div class="pw-box">
         <div id="pw-err" class="err hidden"></div>
         <div id="pw-ok" class="ok hidden"></div>
-        <input id="pw-old" type="password" placeholder="Old password" autocomplete="current-password">
+        <input id="pw-old" type="password" placeholder="Current password" autocomplete="current-password">
         <input id="pw-new" type="password" placeholder="New password" autocomplete="new-password">
-        <button id="btn-pw" class="btn-primary">Change password</button>
+        <button id="btn-pw" class="btn-primary">Update password</button>
       </div>
     </section>
+  </div>
+</div>
+
+<!-- ============ PASSWORD MODAL ============ -->
+<div id="pw-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Change password</h3>
+    <div id="pw-modal-err" class="err hidden"></div>
+    <div id="pw-modal-ok" class="ok hidden"></div>
+    <label class="fld"><span>Current password</span>
+      <input id="pw-modal-old" type="password" autocomplete="current-password">
+    </label>
+    <label class="fld"><span>New password</span>
+      <input id="pw-modal-new" type="password" autocomplete="new-password">
+    </label>
+    <div class="modal-actions">
+      <button id="btn-pw-modal-cancel" class="btn-ghost">Cancel</button>
+      <button id="btn-pw-modal-save" class="btn-primary btn-inline">Update password</button>
+    </div>
   </div>
 </div>
 
