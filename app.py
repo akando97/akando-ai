@@ -159,16 +159,16 @@ def get_user(req: Request):
 def require_user(req: Request):
     u = get_user(req)
     if not u:
-        raise HTTPException(401, "Login koro age.")
+        raise HTTPException(401, "Please login first.")
     if not u["is_admin"] and u["status"] != "approved":
-        raise HTTPException(403, "Tomar account ekhono approve hoyni.")
+        raise HTTPException(403, "Your account is not approved yet.")
     return u
 
 
 def require_admin(req: Request):
     u = get_user(req)
     if not u or not u["is_admin"]:
-        raise HTTPException(403, "Sudhu admin.")
+        raise HTTPException(403, "Admin only.")
     return u
 
 
@@ -271,11 +271,11 @@ async def api_register(req: Request):
     mobile = "".join((body.get("mobile") or "").strip().split())
     password = body.get("password") or ""
     if len(name) < 2:
-        raise HTTPException(400, "Nam likho.")
+        raise HTTPException(400, "Please enter your name.")
     if len(mobile) < 6:
-        raise HTTPException(400, "Sothik mobile number dao.")
+        raise HTTPException(400, "Please enter a valid mobile number.")
     if len(password) < 4:
-        raise HTTPException(400, "Password kompokkhe 4 okkhor hote hobe.")
+        raise HTTPException(400, "Password must be at least 4 characters.")
     try:
         with db() as con:
             con.execute(
@@ -284,8 +284,8 @@ async def api_register(req: Request):
                 (name, mobile, hash_password(password), "pending", utcnow()),
             )
     except sqlite3.IntegrityError:
-        raise HTTPException(400, "Ei mobile number diye already registration ache.")
-    return {"ok": True, "message": "Registration hoyeche! Admin approve korlei chat korte parba."}
+        raise HTTPException(400, "This mobile number is already registered.")
+    return {"ok": True, "message": "Registered! You can chat once the admin approves your account."}
 
 
 @app.post("/api/login")
@@ -296,7 +296,7 @@ async def api_login(req: Request):
     with db() as con:
         row = con.execute("SELECT * FROM users WHERE mobile = ?", (mobile,)).fetchone()
     if not row or not verify_password(password, row["password_hash"]):
-        raise HTTPException(401, "Mobile number ba password bhul.")
+        raise HTTPException(401, "Wrong mobile number or password.")
     u = dict(row)
     if not u["is_admin"] and u["status"] != "approved":
         msg = ("Tomar account ekhono PENDING — admin approve korlei dhukte parba."
@@ -325,7 +325,7 @@ async def api_logout(req: Request):
 async def api_me(req: Request):
     u = get_user(req)
     if not u:
-        raise HTTPException(401, "Login koro age.")
+        raise HTTPException(401, "Please login first.")
     return {"ok": True, "user": public_user(u)}
 
 
@@ -336,14 +336,14 @@ async def api_change_password(req: Request):
     old = body.get("old") or ""
     new = body.get("new") or ""
     if len(new) < 4:
-        raise HTTPException(400, "Notun password kompokkhe 4 okkhor hote hobe.")
+        raise HTTPException(400, "New password must be at least 4 characters.")
     with db() as con:
         row = con.execute("SELECT password_hash FROM users WHERE id = ?", (u["id"],)).fetchone()
         if not verify_password(old, row["password_hash"]):
-            raise HTTPException(400, "Purono password bhul.")
+            raise HTTPException(400, "Old password is wrong.")
         con.execute("UPDATE users SET password_hash = ? WHERE id = ?",
                     (hash_password(new), u["id"]))
-    return {"ok": True, "message": "Password bodle geche."}
+    return {"ok": True, "message": "Password changed."}
 
 
 def public_user(u: dict):
@@ -380,7 +380,7 @@ def own_chat(u, chat_id: int):
         row = con.execute("SELECT id, title FROM chats WHERE id = ? AND user_id = ?",
                           (chat_id, u["id"])).fetchone()
     if not row:
-        raise HTTPException(404, "Chat paoa jayni.")
+        raise HTTPException(404, "Chat not found.")
     return dict(row)
 
 
@@ -403,9 +403,9 @@ async def api_send_message(chat_id: int, req: Request):
     body = await req.json()
     text = (body.get("text") or "").strip()
     if not text:
-        raise HTTPException(400, "Khali message pathano jabena.")
+        raise HTTPException(400, "Cannot send an empty message.")
     if len(text) > 4000:
-        raise HTTPException(400, "Message onek boro (4000 okkhor limit).")
+        raise HTTPException(400, "Message too long (4000 character limit).")
     local_id = uuid.uuid4().hex
     with db() as con:
         cur = con.execute(
@@ -424,7 +424,7 @@ async def api_send_message(chat_id: int, req: Request):
                 f.write(json.dumps(payload, ensure_ascii=False) + "\n")
         except Exception as e:
             print("[akando-site] inbox write failed:", e)
-            raise HTTPException(500, "Message queue-te pathano jayni, abar try koro.")
+            raise HTTPException(500, "Could not queue the message, please try again.")
     return {"ok": True, "message": {"id": mid, "role": "user", "text": text,
                                     "delivered": 0, "msg_local_id": local_id}}
 
